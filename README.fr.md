@@ -15,10 +15,10 @@
 ## 🏗️ Architecture
 
 ### C4 Context Diagram
-![C4 Context](docs/C4_context.png)
+![C4 Context](docs/C4_Context.png)
 
 ### C4 Container Diagram
-![C4 Container](docs/C4_container.png)
+![C4 Container](docs/C4_Container.png)
 
 ---
 
