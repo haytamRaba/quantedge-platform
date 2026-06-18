@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # BASE DE DONNÉES PRINCIPALE (Spring Boot)
+  # ============================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: quantedge-postgres
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-quantedge_core}
+      POSTGRES_USER: ${POSTGRES_USER:-quantedge_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - quantedge-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-quantedge_user} -d ${POSTGRES_DB:-quantedge_core}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # CACHE (Spring Boot)
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: quantedge-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - quantedge-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # MESSAGE BROKER (Communication Spring <-> FastAPI)
+  # ============================================
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: quantedge-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-quantedge}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - quantedge-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # QUALITÉ CODE (Analyse statique)
+  # ============================================
+  sonarqube:
+    image: sonarqube:community
+    container_name: quantedge-sonarqube
+    restart: unless-stopped
+    ports:
+      - "${SONARQUBE_PORT:-9000}:9000"
+    environment:
+      SONAR_JDBC_URL: ${SONAR_JDBC_URL:-jdbc:postgresql://postgres:5432/sonarqube}
+      SONAR_JDBC_USERNAME: ${SONAR_JDBC_USERNAME}
+      SONAR_JDBC_PASSWORD: ${SONAR_JDBC_PASSWORD}
+    depends_on:
+      - postgres
+    networks:
+      - quantedge-network
+
+# ============================================
+# VOLUMES (Persistance des données)
+# ============================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+
+# ============================================
+# RÉSEAUX (Isolation des services)
+# ============================================
+networks:
+  quantedge-network:
+    driver: bridge
