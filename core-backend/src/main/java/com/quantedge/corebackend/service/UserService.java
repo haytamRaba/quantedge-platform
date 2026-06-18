@@ -22,23 +22,7 @@ public class UserService {
     private final UserRepository userRepository;
 
 
-    public UserResponse createUser(CreateUserRequest request) {
-        log.info("Création d'un utilisateur avec l'email : {}", request.getEmail());
 
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("Un utilisateur avec cet email existe déjà");
-        }
-
-        User user = User.builder()
-                .email(request.getEmail())
-                .password(request.getPassword())
-                .build();
-
-        User savedUser = userRepository.save(user);
-        log.info("Utilisateur créé avec l'ID : {}", savedUser.getId());
-
-        return mapToResponse(savedUser);
-    }
 
     /**
      * Récupère tous les utilisateurs.
